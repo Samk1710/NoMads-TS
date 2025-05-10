@@ -63,28 +63,28 @@ export default function ChatPage() {
                                 {part.text}
                               </div>
                             )
-                          } else if (part.type === "tool_call") {
+                          } else if (part.type === "tool-invocation") {
                             return (
                               <Card key={index} className="p-3 bg-gray-800 border-gray-700 text-sm">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Badge variant="outline" className="bg-gray-900 text-gray-300">
                                     Tool Call
                                   </Badge>
-                                  <span className="font-semibold text-gray-300">{part.tool.name}</span>
+                                  <span className="font-semibold text-gray-300">{part.toolInvocation.toolName}</span>
                                 </div>
 
                                 <div className="mb-2">
                                   <div className="text-xs text-gray-400 mb-1">Parameters:</div>
                                   <pre className="text-xs bg-gray-900 p-2 rounded overflow-x-auto">
-                                    {JSON.stringify(part.tool.parameters, null, 2)}
+                                    {JSON.stringify(part.toolInvocation.args, null, 2)}
                                   </pre>
                                 </div>
-
-                                {part.tool.result && (
+                                tool.parameters
+                                {part.toolInvocation.state === "result" && (
                                   <div>
                                     <div className="text-xs text-gray-400 mb-1">Result:</div>
                                     <pre className="text-xs bg-gray-900 p-2 rounded overflow-x-auto">
-                                      {JSON.stringify(part.tool.result, null, 2)}
+                                      {JSON.stringify(part.toolInvocation.result, null, 2)}
                                     </pre>
                                   </div>
                                 )}
