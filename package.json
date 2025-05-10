@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.2.17",
     "@ai-sdk/react": "^1.2.12",
     "@google/generative-ai": "latest",
     "@hookform/resolvers": "^3.9.1",

@@ -1,39 +1,83 @@
-import { tool } from "ai"
-import { z } from "zod"
-import { getFlights } from "../serpapi"
-
-export const flightTool = tool({
-  
-  description: "Search for flights between two locations on specific dates",
-  parameters: z.object({
-    origin: z.string().describe("The origin city or airport code"),
-    destination: z.string().describe("The destination city or airport code"),
-    departureDate: z.string().describe("The departure date in YYYY-MM-DD format"),
-    returnDate: z.string().optional().describe("The return date in YYYY-MM-DD format (optional)"),
+// tools/flights.ts
+import { tool } from 'ai';
+import { z } from 'zod';
+const FlightSchema = z.object({
+  search_metadata: z.object({
+    id: z.string(),
+    status: z.string(),
+    google_flights_url: z.string(),
+    total_time_taken: z.number(),
   }),
-  execute: async ({ origin, destination, departureDate, returnDate }) => {
-    console.log(`🔍 Searching flights from ${origin} to ${destination}`)
-    const flightData = await getFlights(origin, destination, departureDate, returnDate)
+  search_parameters: z.object({
+    departure_id: z.string(),
+    arrival_id: z.string(),
+    outbound_date: z.string(),
+    return_date: z.string(),
+    currency: z.string(),
+  }),
+  best_flights: z.array(
+    z.object({
+      flights: z.array(
+        z.object({
+          departure_airport: z.object({
+            name: z.string(),
+            id: z.string(),
+            time: z.string(),
+          }),
+          arrival_airport: z.object({
+            name: z.string(),
+            id: z.string(),
+            time: z.string(),
+          }),
+          duration: z.number(),
+          airplane: z.string().optional(),
+          airline: z.string(),
+          airline_logo: z.string().url(),
+          travel_class: z.string().optional(),
+          flight_number: z.string(),
+          legroom: z.string().optional(),
+          extensions: z.array(z.string()).optional(),
+        })
+      ),
+      total_duration: z.number(),
+      carbon_emissions: z.object({
+        this_flight: z.number(),
+        typical_for_this_route: z.number(),
+        difference_percent: z.number(),
+      }),
+      price: z.number(),
+      type: z.string(),
+      airline_logo: z.string().url(),
+      departure_token: z.string(),
+    })
+  )
+});
 
-    // Format the response in an excited tone
-    let response = `✈️ OMG! I found ${flightData.flights.length} flights from ${origin} to ${destination}! ✈️\n\n`
 
-    if (flightData.flights.length > 0) {
-      response += "Here are the best options I found:\n\n"
+export const flightTool=tool ({
 
-      flightData.flights.forEach((flight, index) => {
-        response += `🛫 Option ${index + 1}: ${flight.airline} ${flight.flightNumber}\n`
-        response += `   Departure: ${flight.departureTime} ➡️ Arrival: ${flight.arrivalTime}\n`
-        response += `   Duration: ${flight.duration} | Price: ${flight.price}\n`
-        response += `   Stops: ${flight.stops === 0 ? "Nonstop! 🙌" : `${flight.stops} stop(s)`}\n\n`
-      })
-    } else {
-      response += "I couldn't find any flights for those exact dates. Maybe we can try different dates? 🤔"
+    
+  description: 'Fetches best round-trip flights between two airports using SerpAPI Google Flights engine.',
+  parameters: z.object({
+    departure_id: z.string().describe('Departure airport code, e.g., "CCU"'),
+    arrival_id: z.string().describe('Arrival airport code, e.g., "IXZ"'),
+    outbound_date: z.string().describe('Outbound flight date in YYYY-MM-DD format'),
+    return_date: z.string().describe('Return flight date in YYYY-MM-DD format'),
+    currency: z.string().describe('Currency code, e.g., "USD"'),
+  }),
+  execute: async ({ departure_id, arrival_id, outbound_date, return_date, currency }) => {
+    const url = `https://serpapi.com/search.json?engine=google_flights&departure_id=${departure_id}&arrival_id=${arrival_id}&outbound_date=${outbound_date}&return_date=${return_date}&currency=${currency}&hl=en&api_key=d3760c6fd26ff00571c4df9e2510e5ad43b1413bdc1dd2946782d983c44c037c`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const validated = FlightSchema.safeParse(data);
+    if (!validated.success) {
+      console.error(validated.error.format());
+      return { error: 'Invalid response from SerpAPI. Check schema and inputs.' };
     }
 
-    return {
-      message: response,
-      flightData: flightData,
-    }
-  },
-})
+    return validated.data;
+  }
+});
+  
