@@ -14,8 +14,8 @@ export async function POST(req: Request) {
       messages,
       
       
-    //   tools: {flight:flightTool},
-    tools: {flight:itineraryTool},
+      tools: {flight:flightTool, hotel:hotelTool, itinerary:itineraryTool},
+    // tools: {flight:itineraryTool},
       
       maxSteps: 5,
        // Allow multiple tool calls in a single conversation turn
