@@ -1,6 +1,8 @@
 import { streamText, convertToCoreMessages } from "ai"
 import { google } from "@ai-sdk/google"
-import { flightTool } from "@/lib/tools/flight-tool"  
+import { flightTool } from "@/lib/tools/flight-tool" 
+import { hotelTool } from "@/lib/tools/hotel-tool" 
+import { itineraryTool } from "@/lib/tools/itinerary-tool"
 
 export async function POST(req: Request) {
     const { messages } = await req.json()
@@ -12,7 +14,8 @@ export async function POST(req: Request) {
       messages,
       
       
-      tools: {flight:flightTool},
+    //   tools: {flight:flightTool},
+    tools: {flight:itineraryTool},
       
       maxSteps: 5,
        // Allow multiple tool calls in a single conversation turn

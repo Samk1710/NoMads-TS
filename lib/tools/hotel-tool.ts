@@ -1,41 +1,57 @@
-import { tool } from "ai"
-import { z } from "zod"
-import { getHotels } from "../serpapi"
+// tools/hotels.ts
+import { tool } from 'ai';
+import { z } from 'zod';
 
 export const hotelTool = tool({
-  
-  description: "Search for hotels in a specific location for given dates",
+  description: 'Search for hotels in a given location using SerpAPI’s Google Hotels engine.',
   parameters: z.object({
-    location: z.string().describe("The city or area to search for hotels"),
-    checkIn: z.string().describe("The check-in date in YYYY-MM-DD format"),
-    checkOut: z.string().describe("The check-out date in YYYY-MM-DD format"),
-    guests: z.number().default(2).describe("Number of guests"),
-    flightData: z.any().optional().describe("Flight data from previous step"),
+    location: z.string().describe('Search query for the hotel location, e.g., "Bali Resorts"'),
+    check_in_date: z.string().describe('Check-in date in YYYY-MM-DD format'),
+    check_out_date: z.string().describe('Check-out date in YYYY-MM-DD format'),
+    adults: z.number().describe('Number of adults'),
+    currency: z.string().default('USD').describe('Currency code, e.g., "USD"'),
+    gl: z.string().default('us').describe('Country code for the search, e.g., "us"'),
+    hl: z.string().default('en').describe('Language code, e.g., "en"'),
   }),
-  execute: async ({ location, checkIn, checkOut, guests, flightData }) => {
-    console.log(`🔍 Searching hotels in ${location} from ${checkIn} to ${checkOut}`)
-    const hotelData = await getHotels(location, checkIn, checkOut, guests)
+  execute: async ({ location, check_in_date, check_out_date, adults, currency, gl, hl }) => {
+    const params = new URLSearchParams({
+      engine: 'google_hotels',
+      q: location,
+      check_in_date,
+      check_out_date,
+      adults: adults.toString(),
+      currency,
+      gl,
+      hl,
+      api_key: process.env.SERPAPI_API_KEY!
+    });
 
-    // Format the response in an excited tone
-    let response = `🏨 Awesome places to stay in ${location}! 🏨\n\n`
+    const url = `https://serpapi.com/search.json?${params.toString()}`;
 
-    if (hotelData.hotels.length > 0) {
-      response += "Check out these amazing options:\n\n"
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
 
-      hotelData.hotels.forEach((hotel, index) => {
-        response += `🌟 ${hotel.name} - ${hotel.rating}⭐ (${hotel.reviews} reviews)\n`
-        response += `   ${hotel.address}\n`
-        response += `   Price: ${hotel.price}\n`
-        response += `   ${hotel.amenities?.slice(0, 3).join(", ") || "Great amenities!"}\n\n`
-      })
-    } else {
-      response += "I couldn't find hotels matching your criteria exactly. Maybe we can adjust the dates or location? 🤔"
-    }
-
-    return {
-      message: response,
-      hotelData: hotelData,
-      flightData: flightData, // Pass through the flight data
+      if (data.brands) {
+        return data.brands;
+      } else {
+        throw new Error(data.error || 'No hotel data found.');
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch hotel details.',
+      };
+    //   if (data.best_flights) {
+    //     return data.best_flights;
+    //   } else {
+    //     throw new Error(data.error || 'No flight data found.');
+    //   }
+    // } catch (error: any) {
+    //   return {
+    //     success: false,
+    //     error: error.message || 'Failed to fetch flight details.',
+    //   };
     }
   },
-})
+});
